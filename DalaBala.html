@@ -1,0 +1,488 @@
+import React, { useState, useEffect } from 'react';
+import { Flame, Star, BookOpen, CheckCircle, ArrowRight, User, Calendar, Trophy, Lock } from 'lucide-react';
+
+// --- DATA & CONTENT ---
+const MODULES = [
+  { id: 1, title: "Hello, English!", lessons: 6, color: "bg-emerald-400" },
+  { id: 2, title: "My School", lessons: 8, color: "bg-teal-400" },
+  { id: 3, title: "People I Love", lessons: 8, color: "bg-cyan-400" },
+  { id: 4, title: "Weather", lessons: 8, color: "bg-sky-400" },
+  { id: 5, title: "My Free Time", lessons: 8, color: "bg-blue-400" },
+  { id: 6, title: "Health", lessons: 8, color: "bg-indigo-400" },
+  { id: 7, title: "Buildings", lessons: 8, color: "bg-violet-400" },
+  { id: 8, title: "My Holidays", lessons: 8, color: "bg-purple-400" },
+  { id: 9, title: "Reserves & Round-up", lessons: 6, color: "bg-fuchsia-400" }
+];
+
+const AVATARS = [
+  { id: 'fox', emoji: '🦊', name: 'Лисичка' },
+  { id: 'bear', emoji: '🐻', name: 'Мишка' },
+  { id: 'panda', emoji: '🐼', name: 'Панда' },
+  { id: 'tiger', emoji: '🐯', name: 'Тигрёнок' }
+];
+
+const CUSTOM_STYLES = `
+  @keyframes popIn {
+    0% { transform: scale(0.9) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes shakeWrong {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  @keyframes bounceSuccess {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+  .animate-shake-wrong { animation: shakeWrong 0.5s ease-in-out; }
+  .animate-bounce-success { animation: bounceSuccess 1.5s ease-in-out infinite; }
+  .btn-3d { 
+    border-bottom-width: 6px; 
+    transition: transform 0.1s, border-width 0.1s, background-color 0.2s; 
+  }
+  .btn-3d:active:not(:disabled) { 
+    border-bottom-width: 0px !important; 
+    transform: translateY(6px); 
+  }
+`;
+
+// --- MAIN APP COMPONENT ---
+export default function App() {
+  const [view, setView] = useState('onboarding'); // onboarding, dashboard, lesson
+  const [user, setUser] = useState(null);
+  const [progress, setProgress] = useState({ completedLessons: [], currentLessonId: 1, streak: 0, xp: 0 });
+  const [activeLesson, setActiveLesson] = useState(null);
+
+  // --- HANDLERS ---
+  const handleOnboardingComplete = (userData) => {
+    setUser(userData);
+    setView('dashboard');
+  };
+
+  const startLesson = (lessonId) => {
+    setActiveLesson(lessonId);
+    setView('lesson');
+  };
+
+  const completeLesson = (score) => {
+    const earnedXp = score > 80 ? 15 : 10;
+    
+    setProgress(prev => {
+      const isNewLesson = !prev.completedLessons.includes(activeLesson);
+      const newCompleted = isNewLesson ? [...prev.completedLessons, activeLesson] : prev.completedLessons;
+      
+      return {
+        ...prev,
+        completedLessons: newCompleted,
+        currentLessonId: isNewLesson ? activeLesson + 1 : prev.currentLessonId,
+        xp: prev.xp + earnedXp,
+        // Простая симуляция увеличения стрика для демо
+        streak: prev.streak === 0 ? 1 : prev.streak 
+      };
+    });
+    setView('dashboard');
+  };
+
+  // --- VIEWS ---
+  if (view === 'onboarding') {
+    return <><style>{CUSTOM_STYLES}</style><Onboarding onComplete={handleOnboardingComplete} /></>;
+  }
+
+  if (view === 'lesson') {
+    return <><style>{CUSTOM_STYLES}</style><LessonView lessonId={activeLesson} onComplete={completeLesson} onExit={() => setView('dashboard')} /></>;
+  }
+
+  return <><style>{CUSTOM_STYLES}</style><Dashboard user={user} progress={progress} onStartLesson={startLesson} /></>;
+}
+
+// --- ONBOARDING COMPONENT ---
+function Onboarding({ onComplete }) {
+  const [name, setName] = useState('');
+  const [dob, setDob] = useState('');
+  const [avatar, setAvatar] = useState(null);
+  const [step, setStep] = useState(1);
+
+  const handleNext = () => {
+    if (step === 1 && name.trim().length > 1) setStep(2);
+    else if (step === 2 && dob) setStep(3);
+    else if (step === 3 && avatar) {
+      onComplete({ name, dob, avatar });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f1f8e9] flex flex-col items-center justify-center p-6 font-sans">
+      <div className="max-w-md w-full bg-white rounded-[32px] p-8 shadow-xl border-b-[8px] border-[#c5e1a5]">
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-[#aed581] rounded-full mx-auto flex items-center justify-center mb-4 shadow-inner">
+            <span className="text-4xl">🇰🇿</span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-[#33691e]">English Grade 3</h1>
+          <p className="text-[#558b2f] mt-2 font-medium">Давай учить английский вместе!</p>
+        </div>
+
+        {/* STEP 1: Name */}
+        {step === 1 && (
+          <div className="space-y-6 animate-fade-in">
+            <h2 className="text-2xl font-bold text-center text-gray-800">Как тебя зовут?</h2>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={24} />
+              <input 
+                type="text" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Введи свое имя" 
+                className="w-full text-xl bg-gray-50 border-2 border-gray-200 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-[#8bc34a] focus:bg-white transition-colors"
+              />
+            </div>
+            <button 
+              onClick={handleNext}
+              disabled={name.trim().length < 2}
+              className="w-full bg-[#8bc34a] hover:bg-[#7cb342] disabled:bg-gray-300 disabled:border-gray-400 text-white text-xl font-bold py-4 rounded-2xl border-b-4 border-[#689f38] transition-all active:border-b-0 active:translate-y-1"
+            >
+              Дальше
+            </button>
+          </div>
+        )}
+
+        {/* STEP 2: DOB */}
+        {step === 2 && (
+          <div className="space-y-6 animate-fade-in">
+            <h2 className="text-2xl font-bold text-center text-gray-800">Когда твой день рождения?</h2>
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={24} />
+              <input 
+                type="date" 
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                className="w-full text-xl bg-gray-50 border-2 border-gray-200 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-[#8bc34a] focus:bg-white transition-colors"
+              />
+            </div>
+            <button 
+              onClick={handleNext}
+              disabled={!dob}
+              className="w-full bg-[#8bc34a] hover:bg-[#7cb342] disabled:bg-gray-300 disabled:border-gray-400 text-white text-xl font-bold py-4 rounded-2xl border-b-4 border-[#689f38] transition-all active:border-b-0 active:translate-y-1"
+            >
+              Дальше
+            </button>
+          </div>
+        )}
+
+        {/* STEP 3: Avatar */}
+        {step === 3 && (
+          <div className="space-y-6 animate-fade-in">
+            <h2 className="text-2xl font-bold text-center text-gray-800">Выбери своего героя</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {AVATARS.map(av => (
+                <button
+                  key={av.id}
+                  onClick={() => setAvatar(av)}
+                  className={`flex flex-col items-center justify-center p-4 rounded-3xl border-4 transition-all ${avatar?.id === av.id ? 'border-[#8bc34a] bg-[#f1f8e9]' : 'border-gray-100 bg-white hover:border-gray-200'}`}
+                >
+                  <span className="text-5xl mb-2">{av.emoji}</span>
+                  <span className="font-bold text-gray-700">{av.name}</span>
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={handleNext}
+              disabled={!avatar}
+              className="w-full bg-[#8bc34a] hover:bg-[#7cb342] disabled:bg-gray-300 disabled:border-gray-400 text-white text-xl font-bold py-4 rounded-2xl border-b-4 border-[#689f38] transition-all active:border-b-0 active:translate-y-1"
+            >
+              Начать учиться!
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- DASHBOARD COMPONENT ---
+function Dashboard({ user, progress, onStartLesson }) {
+  // Расчет позиции для отрисовки пути
+  let globalLessonCount = 1;
+
+  return (
+    <div className="min-h-screen bg-[#f1f8e9] font-sans pb-20">
+      {/* Top Navigation Bar */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-[#e8f5e9] rounded-full border-2 border-[#8bc34a] flex items-center justify-center text-xl">
+            {user.avatar.emoji}
+          </div>
+          <span className="font-bold text-gray-700 hidden sm:inline">{user.name}</span>
+        </div>
+        
+        <div className="flex gap-4">
+          {/* XP Bar */}
+          <div className="flex items-center gap-1.5 font-bold text-blue-500 bg-blue-50 px-3 py-1.5 rounded-2xl border border-blue-100">
+            <Trophy size={20} fill="currentColor" />
+            <span>{progress.xp} XP</span>
+          </div>
+          
+          {/* Streak Bar (Огонек) */}
+          <div className={`flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-2xl border ${progress.streak > 0 ? 'text-orange-500 bg-orange-50 border-orange-200' : 'text-gray-400 bg-gray-50 border-gray-200'}`}>
+            <Flame size={20} fill={progress.streak > 0 ? "currentColor" : "none"} strokeWidth={2.5} />
+            <span>{progress.streak}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Path / Map */}
+      <div className="max-w-md mx-auto py-8 px-4 flex flex-col items-center">
+        {MODULES.map((mod, modIdx) => {
+          return (
+            <div key={mod.id} className="w-full mb-12 flex flex-col items-center">
+              {/* Module Header */}
+              <div className={`w-full ${mod.color} rounded-3xl p-6 mb-8 text-white shadow-lg border-b-[6px] border-black/10 relative overflow-hidden`}>
+                <div className="relative z-10">
+                  <h3 className="text-3xl font-extrabold mb-1">Unit {mod.id}</h3>
+                  <p className="text-lg font-medium opacity-90">{mod.title}</p>
+                </div>
+                <BookOpen className="absolute -right-4 -bottom-4 opacity-20 transform -rotate-12" size={120} />
+              </div>
+
+              {/* Lesson Nodes */}
+              <div className="flex flex-col gap-6 items-center w-full relative">
+                {Array.from({ length: mod.lessons }).map((_, i) => {
+                  const currentGlobalId = globalLessonCount++;
+                  const isCompleted = progress.completedLessons.includes(currentGlobalId);
+                  const isCurrent = progress.currentLessonId === currentGlobalId;
+                  const isLocked = currentGlobalId > progress.currentLessonId;
+                  
+                  // Смещение по синусоиде для создания "извилистого" пути
+                  const offsetX = Math.sin(i * 1.5) * 40; 
+                  
+                  return (
+                    <div key={i} className="relative" style={{ transform: `translateX(${offsetX}px)` }}>
+                      {/* Connecting Line to next node (simplified) */}
+                      {i < mod.lessons - 1 && (
+                        <div className="absolute top-12 left-1/2 w-4 h-10 bg-gray-200 -z-10 rounded-full" />
+                      )}
+                      
+                      <button
+                        onClick={() => !isLocked && onStartLesson(currentGlobalId)}
+                        disabled={isLocked}
+                        className={`
+                          w-20 h-20 rounded-full flex items-center justify-center border-b-[6px] transition-all transform hover:scale-105 active:scale-95 active:border-b-0 active:translate-y-1.5
+                          ${isCompleted ? 'bg-[#ffc107] border-[#ff9800] text-white shadow-md' : 
+                            isCurrent ? `${mod.color} border-black/20 text-white shadow-xl ring-4 ring-offset-4 ring-emerald-200` : 
+                            'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed'}
+                        `}
+                      >
+                        {isCompleted ? <Star size={36} fill="currentColor" /> : 
+                         isLocked ? <Lock size={32} /> : 
+                         <span className="text-3xl font-black">{i + 1}</span>}
+                      </button>
+
+                      {/* Floating Indicator for current lesson */}
+                      {isCurrent && (
+                        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-2xl shadow-lg border-2 border-gray-100 font-bold text-gray-700 animate-bounce whitespace-nowrap z-20">
+                          Start!
+                          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-gray-100 rotate-45" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// --- MOCK LESSON COMPONENT ---
+function LessonView({ lessonId, onComplete, onExit }) {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isCorrect, setIsCorrect] = useState(null);
+  const [score, setScore] = useState(0);
+
+  // Массив из 5 уникальных вопросов
+  const questions = [
+    {
+      id: 1,
+      text: "Как сказать «Привет»?",
+      options: [
+        { id: 'a', text: 'Goodbye', img: '👋' },
+        { id: 'b', text: 'Hello', img: '🖐️' },
+        { id: 'c', text: 'Apple', img: '🍎' },
+        { id: 'd', text: 'Dog', img: '🐶' }
+      ],
+      correct: 'b'
+    },
+    {
+      id: 2,
+      text: "Выбери правильный перевод: «Школьный рюкзак»",
+      options: [
+        { id: 'a', text: 'Pencil case', img: '✏️' },
+        { id: 'b', text: 'Schoolbag', img: '🎒' },
+        { id: 'c', text: 'Rubber', img: '🧽' },
+        { id: 'd', text: 'Pen', img: '🖊️' }
+      ],
+      correct: 'b'
+    },
+    {
+      id: 3,
+      text: "Где здесь «Кот»?",
+      options: [
+        { id: 'a', text: 'Cat', img: '🐱' },
+        { id: 'b', text: 'Dog', img: '🐶' },
+        { id: 'c', text: 'Bird', img: '🐦' },
+        { id: 'd', text: 'Fish', img: '🐟' }
+      ],
+      correct: 'a'
+    },
+    {
+      id: 4,
+      text: "Как сказать «Я» по-английски?",
+      options: [
+        { id: 'a', text: 'You', img: '👉' },
+        { id: 'b', text: 'He', img: '👦' },
+        { id: 'c', text: 'I', img: '🙋‍♂️' },
+        { id: 'd', text: 'She', img: '👧' }
+      ],
+      correct: 'c'
+    },
+    {
+      id: 5,
+      text: "Что означает слово «Red»?",
+      options: [
+        { id: 'a', text: 'Синий', img: '🔵' },
+        { id: 'b', text: 'Зеленый', img: '🟢' },
+        { id: 'c', text: 'Красный', img: '🔴' },
+        { id: 'd', text: 'Желтый', img: '🟡' }
+      ],
+      correct: 'c'
+    }
+  ];
+
+  const currentQuestion = questions[currentQuestionIndex];
+  // Считаем прогресс (от 0 до 100, прибавляем кусок при правильном ответе)
+  const progressPercent = (currentQuestionIndex / questions.length) * 100;
+
+  const handleCheck = () => {
+    if (!selectedAnswer) return;
+    const correct = selectedAnswer === currentQuestion.correct;
+    setIsCorrect(correct);
+    if (correct) {
+      setScore(prev => prev + 20); // 5 вопросов * 20 = 100 баллов максимум
+    }
+  };
+
+  const handleContinue = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      // Переход к следующему вопросу сбрасывает стейты
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+      setIsCorrect(null);
+    } else {
+      // Завершение урока
+      onComplete(score + (isCorrect ? 20 : 0));
+    }
+  };
+
+  const getCorrectOptionText = () => {
+    return currentQuestion.options.find(o => o.id === currentQuestion.correct)?.text || '';
+  };
+
+  return (
+    <div className="min-h-screen bg-white font-sans flex flex-col">
+      {/* Lesson Header */}
+      <div className="flex items-center justify-between p-4 border-b-2 border-gray-100 bg-white z-10 sticky top-0">
+        <button onClick={onExit} className="text-gray-400 hover:text-gray-600 p-2 transition-transform active:scale-90">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        <div className="flex-1 mx-4 h-5 bg-gray-200 rounded-full overflow-hidden shadow-inner relative">
+          <div 
+            className="h-full bg-[#8bc34a] rounded-full transition-all duration-700 ease-out relative"
+            style={{ width: `${progressPercent + (isCorrect ? (100/questions.length) : 0)}%` }}
+          >
+            {/* Блик на прогресс-баре для создания объема */}
+            <div className="absolute top-1 left-2 right-2 h-1.5 bg-white/30 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lesson Content - Анимация при смене вопроса за счет key={currentQuestion.id} */}
+      <div key={currentQuestion.id} className="flex-1 flex flex-col max-w-2xl mx-auto w-full p-6 mt-4 animate-pop-in">
+        <h2 className="text-3xl font-extrabold text-gray-800 mb-8 text-center drop-shadow-sm">
+          {currentQuestion.text}
+        </h2>
+        
+        <div className="grid grid-cols-2 gap-4 flex-1 content-start">
+          {currentQuestion.options.map((opt) => {
+            const isSelected = selectedAnswer === opt.id;
+            const isCorrectOption = isCorrect !== null && opt.id === currentQuestion.correct;
+            const isWrongSelection = isCorrect === false && isSelected;
+            
+            return (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  if(isCorrect === null) setSelectedAnswer(opt.id);
+                }}
+                disabled={isCorrect !== null}
+                className={`
+                  flex flex-col items-center justify-center p-6 rounded-3xl transition-all btn-3d relative overflow-hidden
+                  ${isSelected && isCorrect === null ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'}
+                  ${isCorrectOption ? 'border-[#7cb342] bg-[#f1f8e9] text-[#558b2f]' : ''}
+                  ${isWrongSelection ? 'border-red-400 bg-red-50 text-red-600 animate-shake-wrong' : ''}
+                  ${isCorrect !== null && !isCorrectOption && !isWrongSelection ? 'opacity-50 grayscale-[50%]' : ''}
+                `}
+              >
+                <span className="text-6xl mb-4 drop-shadow-md">{opt.img}</span>
+                <span className="text-xl font-bold">{opt.text}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className={`p-6 border-t-2 z-20 transition-colors duration-300 ${isCorrect === true ? 'bg-[#f1f8e9] border-[#aed581]' : isCorrect === false ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex-1">
+             {isCorrect === true && (
+               <div className="flex items-center text-[#558b2f] font-bold text-2xl gap-3 animate-pop-in">
+                 <div className="bg-white rounded-full p-1 shadow-sm"><CheckCircle size={36} fill="#8bc34a" color="white" className="animate-bounce-success" /></div> 
+                 Великолепно!
+               </div>
+             )}
+             {isCorrect === false && (
+               <div className="text-red-600 font-bold text-2xl animate-pop-in flex flex-col">
+                 <span className="text-red-800 text-lg opacity-80 mb-1">Правильный ответ:</span>
+                 {getCorrectOptionText()}
+               </div>
+             )}
+          </div>
+          
+          {isCorrect === null ? (
+            <button 
+              onClick={handleCheck}
+              disabled={!selectedAnswer}
+              className="bg-[#8bc34a] hover:bg-[#7cb342] disabled:bg-gray-200 disabled:border-b-0 disabled:text-gray-400 disabled:translate-y-[6px] text-white text-xl font-bold py-4 px-12 rounded-2xl transition-all btn-3d border-b-[#689f38] ml-auto block"
+            >
+              Проверить
+            </button>
+          ) : (
+            <button 
+              onClick={handleContinue}
+              className={`text-white text-xl font-bold py-4 px-12 rounded-2xl transition-all btn-3d ml-auto block
+                ${isCorrect ? 'bg-[#8bc34a] hover:bg-[#7cb342] border-[#689f38]' : 'bg-red-500 hover:bg-red-600 border-red-700'}
+              `}
+            >
+              Дальше
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
